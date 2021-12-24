@@ -1,0 +1,24 @@
+{
+    "name": "gingteam/workerman-runtime",
+    "type": "library",
+    "license": "MIT",
+    "autoload": {
+        "psr-4": {
+            "GingTeam\\WorkermanRuntime\\": "src/"
+        }
+    },
+    "authors": [
+        {
+            "name": "ging-dev",
+            "email": "gingdz11012001@gmail.com"
+        }
+    ],
+    "minimum-stability": "stable",
+    "require": {
+        "symfony/runtime": "^6.0",
+        "symfony/http-kernel": "^6.0",
+        "workerman/workerman": "^4.0",
+        "nyholm/psr7": "^1.4",
+        "symfony/psr-http-message-bridge": "^2.1"
+    }
+}
