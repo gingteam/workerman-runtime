@@ -76,14 +76,13 @@ class Runner implements RunnerInterface
                 });
                 $sfResponse->sendContent();
                 ob_end_clean();
-                $connection->close();
                 break;
             case $sfResponse instanceof BinaryFileResponse:
                 /** @var BinaryFileResponse $sfResponse */
-                $connection->close((new Response())->withFile($sfResponse->getFile()->getPathname()));
+                $connection->send((new Response())->withFile($sfResponse->getFile()->getPathname()));
                 break;
             default:
-                $connection->close(
+                $connection->send(
                     new Response(
                         $sfResponse->getStatusCode(),
                         $sfResponse->headers->all(),
