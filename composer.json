@@ -17,11 +17,15 @@
     "require": {
         "symfony/runtime": "^6.0",
         "symfony/http-kernel": "^6.0",
-        "workerman/workerman": "^4.0",
-        "nyholm/psr7": "^1.4",
-        "symfony/psr-http-message-bridge": "^2.1"
+        "workerman/workerman": "^4.0"
     },
     "require-dev": {
         "pestphp/pest": "^1.21"
+    },
+    "config": {
+        "allow-plugins": {
+            "pestphp/pest-plugin": true,
+            "symfony/runtime": true
+        }
     }
 }

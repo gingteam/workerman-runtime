@@ -4,8 +4,7 @@ declare(strict_types=1);
 
 namespace GingTeam\WorkermanRuntime;
 
-use Nyholm\Psr7\ServerRequest;
-use Symfony\Bridge\PsrHttpMessage\Factory\HttpFoundationFactory;
+use Symfony\Component\HttpFoundation\Request as SymfonyRequest;
 use Symfony\Component\HttpKernel\HttpKernelInterface;
 use Symfony\Component\HttpKernel\TerminableInterface;
 use Symfony\Component\Runtime\RunnerInterface;
@@ -17,12 +16,10 @@ use Workerman\Worker;
 class Runner implements RunnerInterface
 {
     private $kernel;
-    private $httpFoundationFactory;
 
     public function __construct(HttpKernelInterface $kernel)
     {
         $this->kernel = $kernel;
-        $this->httpFoundationFactory = new HttpFoundationFactory();
     }
 
     public function run(): int
@@ -48,8 +45,25 @@ class Runner implements RunnerInterface
             return;
         }
 
-        $psrRequest = static::createRequest($request);
-        $sfRequest = $this->httpFoundationFactory->createRequest($psrRequest);
+        $server = array_merge(
+            $_SERVER,
+            [
+                'REMOVE_ADDR' => $connection->getRemoteIp(),
+                'REMOVE_PORT' => $connection->getRemotePort(),
+            ],
+            static::prepareForServer($request)
+        );
+
+        $sfRequest = new SymfonyRequest(
+            $request->get(),
+            $request->post(),
+            [],
+            $request->cookie(),
+            $request->file(),
+            $server,
+            $request->rawBody()
+        );
+
         $sfResponse = $this->kernel->handle($sfRequest);
 
         $connection->send(
@@ -65,21 +79,26 @@ class Runner implements RunnerInterface
         }
     }
 
-    public static function createRequest(Request $request): ServerRequest
+    public static function prepareForServer(Request $request): array
     {
-        $psrRequest = new ServerRequest(
-            $request->method(),
-            $request->uri(),
-            $request->header(),
-            $request->protocolVersion()
-        );
+        $server = [
+            'REQUEST_URI' => $request->uri(),
+            'REQUEST_METHOD' => $request->method(),
+            'REQUEST_TIME' => time(),
+            'REQUEST_TIME_FLOAT' => microtime(true),
+            'SERVER_PROTOCOL' => 'HTTP/'.$request->protocolVersion(),
+            'HTTP_USER_AGENT' => '',
+        ];
 
-        $psrRequest = $psrRequest
-            ->withCookieParams($request->cookie())
-            ->withQueryParams($request->get())
-            ->withParsedBody($request->post())
-            ->withUploadedFiles($request->file());
+        foreach ($request->header() as $key => $value) {
+            $key = \strtoupper(\str_replace('-', '_', (string) $key));
+            if (\in_array($key, ['CONTENT_TYPE', 'CONTENT_LENGTH'])) {
+                $server[$key] = $value;
+            } else {
+                $server['HTTP_'.$key] = $value;
+            }
+        }
 
-        return $psrRequest;
+        return $server;
     }
 }
