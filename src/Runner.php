@@ -50,8 +50,8 @@ class Runner implements RunnerInterface
         $server = array_merge(
             $_SERVER,
             [
-                'REMOVE_ADDR' => $connection->getRemoteIp(),
-                'REMOVE_PORT' => $connection->getRemotePort(),
+                'REMOTE_ADDR' => $connection->getRemoteIp(),
+                'REMOTE_PORT' => $connection->getRemotePort(),
             ],
             static::prepareForServer($request)
         );
