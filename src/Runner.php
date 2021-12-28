@@ -10,6 +10,7 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 use Symfony\Component\HttpKernel\HttpKernelInterface;
 use Symfony\Component\HttpKernel\TerminableInterface;
 use Symfony\Component\Runtime\RunnerInterface;
+use Workerman\Connection\ConnectionInterface;
 use Workerman\Connection\TcpConnection;
 use Workerman\Protocols\Http\Request;
 use Workerman\Protocols\Http\Response;
@@ -45,22 +46,13 @@ class Runner implements RunnerInterface
             return;
         }
 
-        $server = array_merge(
-            $_SERVER,
-            static::prepareForServer($request),
-            [
-                'REMOTE_ADDR' => $connection->getRemoteIp(),
-                'REMOTE_PORT' => $connection->getRemotePort(),
-            ]
-        );
-
         $sfRequest = new SymfonyRequest(
             $request->get(),
             $request->post(),
             [],
             $request->cookie(),
             $request->file(),
-            $server,
+            static::prepareForServer($connection, $request),
             $request->rawBody()
         );
 
@@ -76,14 +68,13 @@ class Runner implements RunnerInterface
                 });
                 $sfResponse->sendContent();
                 ob_end_clean();
-                $connection->close();
                 break;
             case $sfResponse instanceof BinaryFileResponse:
                 /** @var BinaryFileResponse $sfResponse */
-                $connection->close((new Response())->withFile($sfResponse->getFile()->getPathname()));
+                $connection->send((new Response())->withFile($sfResponse->getFile()->getPathname()));
                 break;
             default:
-                $connection->close(
+                $connection->send(
                     new Response(
                         $sfResponse->getStatusCode(),
                         $sfResponse->headers->all(),
@@ -97,9 +88,11 @@ class Runner implements RunnerInterface
         }
     }
 
-    public static function prepareForServer(Request $request): array
+    public static function prepareForServer(ConnectionInterface $connection, Request $request): array
     {
         $server = [
+            'REMOTE_ADDR'        => $connection->getRemoteIp(),
+            'REMOTE_PORT'        => $connection->getRemotePort(),
             'REQUEST_URI'        => $request->uri(),
             'REQUEST_METHOD'     => $request->method(),
             'REQUEST_TIME'       => time(),
@@ -117,6 +110,6 @@ class Runner implements RunnerInterface
             }
         }
 
-        return $server;
+        return array_merge($server, $_SERVER);
     }
 }
