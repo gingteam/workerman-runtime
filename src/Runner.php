@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace GingTeam\WorkermanRuntime;
 
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use Symfony\Component\HttpFoundation\Request as SymfonyRequest;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 use Symfony\Component\HttpKernel\HttpKernelInterface;
 use Symfony\Component\HttpKernel\TerminableInterface;
 use Symfony\Component\Runtime\RunnerInterface;
@@ -66,13 +68,31 @@ class Runner implements RunnerInterface
 
         $sfResponse = $this->kernel->handle($sfRequest);
 
-        $connection->send(
-            new Response(
-                $sfResponse->getStatusCode(),
-                $sfResponse->headers->all(),
-                $sfResponse->getContent()
-            )
-        );
+        switch (true) {
+            case $sfResponse instanceof BinaryFileResponse && $sfResponse->headers->has('Content-Range'):
+            case $sfResponse instanceof StreamedResponse:
+                ob_start(function ($buffer) use ($connection) {
+                    $connection->send($buffer);
+
+                    return '';
+                });
+                $sfResponse->sendContent();
+                ob_end_clean();
+                $connection->close();
+                break;
+            case $sfResponse instanceof BinaryFileResponse:
+                /** @var BinaryFileResponse $sfResponse */
+                $connection->close((new Response())->withFile($sfResponse->getFile()->getPathname()));
+                break;
+            default:
+                $connection->close(
+                    new Response(
+                        $sfResponse->getStatusCode(),
+                        $sfResponse->headers->all(),
+                        $sfResponse->getContent()
+                    )
+                );
+        }
 
         if ($this->kernel instanceof TerminableInterface) {
             $this->kernel->terminate($sfRequest, $sfResponse);
