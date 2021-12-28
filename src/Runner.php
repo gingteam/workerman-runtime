@@ -26,11 +26,9 @@ class Runner implements RunnerInterface
 
     public function run(): int
     {
-        $httpServer = new Worker('http://0.0.0.0:8000');
-
-        $httpServer->name = 'Symfony Runtime';
-        $httpServer->count = (int) shell_exec('nproc') * 2;
-
+        $httpServer            = new Worker('http://0.0.0.0:8000');
+        $httpServer->name      = 'Symfony Runtime';
+        $httpServer->count     = (int) shell_exec('nproc') * 2;
         $httpServer->onMessage = [$this, 'handle'];
 
         Worker::runAll();
@@ -49,11 +47,11 @@ class Runner implements RunnerInterface
 
         $server = array_merge(
             $_SERVER,
+            static::prepareForServer($request),
             [
                 'REMOTE_ADDR' => $connection->getRemoteIp(),
                 'REMOTE_PORT' => $connection->getRemotePort(),
-            ],
-            static::prepareForServer($request)
+            ]
         );
 
         $sfRequest = new SymfonyRequest(
@@ -102,12 +100,12 @@ class Runner implements RunnerInterface
     public static function prepareForServer(Request $request): array
     {
         $server = [
-            'REQUEST_URI' => $request->uri(),
-            'REQUEST_METHOD' => $request->method(),
-            'REQUEST_TIME' => time(),
+            'REQUEST_URI'        => $request->uri(),
+            'REQUEST_METHOD'     => $request->method(),
+            'REQUEST_TIME'       => time(),
             'REQUEST_TIME_FLOAT' => microtime(true),
-            'SERVER_PROTOCOL' => 'HTTP/'.$request->protocolVersion(),
-            'HTTP_USER_AGENT' => '',
+            'SERVER_PROTOCOL'    => 'HTTP/'.$request->protocolVersion(),
+            'HTTP_USER_AGENT'    => '',
         ];
 
         foreach ($request->header() as $key => $value) {
