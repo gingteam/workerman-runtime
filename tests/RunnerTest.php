@@ -6,8 +6,8 @@ use Workerman\Protocols\Http\Request;
 
 test('request', function () {
     $request = new Request("GET / HTTP/1.1\r\nHost: localhost:8000\r\nUser-Agent: Symfony\r\n\r\n");
-    $psrRequest = Runner::createRequest($request);
+    $server = Runner::prepareForServer($request);
 
     /** @var TestCase $this */
-    $this->assertSame('Symfony', $psrRequest->getHeaderLine('User-Agent'));
+    $this->assertSame('Symfony', $server['HTTP_USER_AGENT']);
 });
