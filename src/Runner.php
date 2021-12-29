@@ -74,13 +74,12 @@ class Runner implements RunnerInterface
                 $connection->send((new Response())->withFile($sfResponse->getFile()->getPathname()));
                 break;
             default:
-                $connection->send(
-                    new Response(
-                        $sfResponse->getStatusCode(),
-                        $sfResponse->headers->all(),
-                        $sfResponse->getContent()
-                    )
-                );
+                // https://github.com/walkor/workerman/issues/705
+                $response = new Response($sfResponse->getStatusCode(), [], $sfResponse->getContent());
+                foreach ($sfResponse->headers->all() as $key => $value) {
+                    $response->withHeader(ucwords($key, '-'), $value);
+                }
+                $connection->send($response);
         }
 
         if ($this->kernel instanceof TerminableInterface) {
