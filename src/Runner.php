@@ -37,7 +37,7 @@ class Runner implements RunnerInterface
         return 0;
     }
 
-    public function handle(TcpConnection $connection, Request $request)
+    public function handle(TcpConnection $connection, Request $request): void
     {
         $path = realpath(getcwd().$request->path());
         if (false !== $path && is_file($path)) {
@@ -65,12 +65,11 @@ class Runner implements RunnerInterface
                     $connection->send($buffer);
 
                     return '';
-                });
+                }, 4096);
                 $sfResponse->sendContent();
                 ob_end_clean();
                 break;
             case $sfResponse instanceof BinaryFileResponse:
-                /** @var BinaryFileResponse $sfResponse */
                 $connection->send((new Response())->withFile($sfResponse->getFile()->getPathname()));
                 break;
             default:

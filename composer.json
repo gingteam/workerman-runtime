@@ -20,7 +20,8 @@
         "workerman/workerman": "^4.0"
     },
     "require-dev": {
-        "pestphp/pest": "^1.21"
+        "pestphp/pest": "^1.21",
+        "vimeo/psalm": "^5.4"
     },
     "config": {
         "allow-plugins": {
